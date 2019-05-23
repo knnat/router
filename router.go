@@ -74,8 +74,6 @@
 package router
 
 import (
-	"strings"
-
 	"github.com/savsgio/gotils"
 	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
@@ -152,37 +150,37 @@ func New() *Router {
 }
 
 // GET is a shortcut for router.Handle("GET", path, handle)
-func (r *Router) GET(path string, handle fasthttp.RequestHandler) {
+func (r *Router) GET(path string, handle *Handlers) {
 	r.Handle("GET", path, handle)
 }
 
 // HEAD is a shortcut for router.Handle("HEAD", path, handle)
-func (r *Router) HEAD(path string, handle fasthttp.RequestHandler) {
+func (r *Router) HEAD(path string, handle *Handlers) {
 	r.Handle("HEAD", path, handle)
 }
 
 // OPTIONS is a shortcut for router.Handle("OPTIONS", path, handle)
-func (r *Router) OPTIONS(path string, handle fasthttp.RequestHandler) {
+func (r *Router) OPTIONS(path string, handle *Handlers) {
 	r.Handle("OPTIONS", path, handle)
 }
 
 // POST is a shortcut for router.Handle("POST", path, handle)
-func (r *Router) POST(path string, handle fasthttp.RequestHandler) {
+func (r *Router) POST(path string, handle *Handlers) {
 	r.Handle("POST", path, handle)
 }
 
 // PUT is a shortcut for router.Handle("PUT", path, handle)
-func (r *Router) PUT(path string, handle fasthttp.RequestHandler) {
+func (r *Router) PUT(path string, handle *Handlers) {
 	r.Handle("PUT", path, handle)
 }
 
 // PATCH is a shortcut for router.Handle("PATCH", path, handle)
-func (r *Router) PATCH(path string, handle fasthttp.RequestHandler) {
+func (r *Router) PATCH(path string, handle *Handlers) {
 	r.Handle("PATCH", path, handle)
 }
 
 // DELETE is a shortcut for router.Handle("DELETE", path, handle)
-func (r *Router) DELETE(path string, handle fasthttp.RequestHandler) {
+func (r *Router) DELETE(path string, handle *Handlers) {
 	r.Handle("DELETE", path, handle)
 }
 
@@ -194,7 +192,7 @@ func (r *Router) DELETE(path string, handle fasthttp.RequestHandler) {
 // This function is intended for bulk loading and to allow the usage of less
 // frequently used, non-standardized or custom methods (e.g. for internal
 // communication with a proxy).
-func (r *Router) Handle(method, path string, handle fasthttp.RequestHandler) {
+func (r *Router) Handle(method, path string, handle *Handlers) {
 	if path[0] != '/' {
 		panic("path must begin with '/' in path '" + path + "'")
 	}
@@ -212,27 +210,6 @@ func (r *Router) Handle(method, path string, handle fasthttp.RequestHandler) {
 	root.addRoute(path, handle)
 }
 
-// ServeFiles serves files from the given file system root.
-// The path must end with "/*filepath", files are then served from the local
-// path /defined/root/dir/*filepath.
-// For example if root is "/etc" and *filepath is "passwd", the local file
-// "/etc/passwd" would be served.
-// Internally a http.FileServer is used, therefore http.NotFound is used instead
-// of the Router's NotFound handler.
-//     router.ServeFiles("/src/*filepath", "/var/www")
-func (r *Router) ServeFiles(path string, rootPath string) {
-	if len(path) < 10 || path[len(path)-10:] != "/*filepath" {
-		panic("path must end with /*filepath in path '" + path + "'")
-	}
-	prefix := path[:len(path)-10]
-
-	fileHandler := fasthttp.FSHandler(rootPath, strings.Count(prefix, "/"))
-
-	r.GET(path, func(ctx *fasthttp.RequestCtx) {
-		fileHandler(ctx)
-	})
-}
-
 func (r *Router) recv(ctx *fasthttp.RequestCtx) {
 	if rcv := recover(); rcv != nil {
 		r.PanicHandler(ctx, rcv)
@@ -244,7 +221,7 @@ func (r *Router) recv(ctx *fasthttp.RequestCtx) {
 // If the path was found, it returns the handle function and the path parameter
 // values. Otherwise the third return value indicates whether a redirection to
 // the same path with an extra / without the trailing slash should be performed.
-func (r *Router) Lookup(method, path string, ctx *fasthttp.RequestCtx) (fasthttp.RequestHandler, bool) {
+func (r *Router) Lookup(method, path string, ctx *fasthttp.RequestCtx) (*Handlers, bool) {
 	if root := r.trees[method]; root != nil {
 		return root.getValue(path, ctx)
 	}
@@ -299,8 +276,22 @@ func (r *Router) Handler(ctx *fasthttp.RequestCtx) {
 	method := gotils.B2S(ctx.Method())
 
 	if root := r.trees[method]; root != nil {
-		if f, tsr := root.getValue(path, ctx); f != nil {
-			f(ctx)
+		if h, tsr := root.getValue(path, ctx); h != nil {
+			var err error
+			for _, f := range h.preHandler {
+				if err = f(ctx); err != nil {
+					break
+				}
+			}
+			if err == nil {
+				h.handler(ctx)
+				for i := range h.postHandler {
+					h.postHandler[len(h.postHandler)-i-1](ctx)
+				}
+			}
+			for i := range h.finalHandler {
+				h.finalHandler[len(h.finalHandler)-i-1](ctx)
+			}
 			return
 		} else if method != "CONNECT" && path != "/" {
 			code := 301 // Permanent redirect, request with GET method
