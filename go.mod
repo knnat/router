@@ -1,4 +1,4 @@
-module github.com/fasthttp/router
+module github.com/knnat/router
 
 require (
 	github.com/elithrar/simple-scrypt v1.3.0
