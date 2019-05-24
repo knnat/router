@@ -4,62 +4,71 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// PreFlag indicates whether Handlers.Handler and Handlers.PostHandler are to be skipped.
+type PreFlag int
+
+// Various flag for Handlers.PreHandler
+const (
+	Continue PreFlag = iota
+	Stop
+)
+
 // RequestHandler is fasthttp.RequestHandler with error return.
-type RequestHandler func(ctx *fasthttp.RequestCtx) error
+type RequestHandler func(ctx *fasthttp.RequestCtx) PreFlag
 
 // Handlers is a collection of request handlers.
 type Handlers struct {
-	preHandler   []RequestHandler
-	handler      fasthttp.RequestHandler
-	postHandler  []fasthttp.RequestHandler
-	finalHandler []fasthttp.RequestHandler
+	PreHandler   []RequestHandler
+	Handler      fasthttp.RequestHandler
+	PostHandler  []fasthttp.RequestHandler
+	FinalHandler []fasthttp.RequestHandler
 }
 
-// AddPreHandler add a RequestHandler to the end of preHandler slice.
+// AddPreHandler add a RequestHandler to the end of PreHandler slice.
 func (h *Handlers) AddPreHandler(r RequestHandler) {
-	if h.preHandler == nil {
-		h.preHandler = []RequestHandler{}
+	if h.PreHandler == nil {
+		h.PreHandler = []RequestHandler{}
 	}
-	h.preHandler = append(h.preHandler, r)
+	h.PreHandler = append(h.PreHandler, r)
 }
 
-// AddPostHandler add a RequestHandler to the end of postHandler slice.
+// AddPostHandler add a RequestHandler to the end of PostHandler slice.
 func (h *Handlers) AddPostHandler(r fasthttp.RequestHandler) {
-	if h.postHandler == nil {
-		h.postHandler = []fasthttp.RequestHandler{}
+	if h.PostHandler == nil {
+		h.PostHandler = []fasthttp.RequestHandler{}
 	}
-	h.postHandler = append(h.postHandler, r)
+	h.PostHandler = append(h.PostHandler, r)
 }
 
-// AddFinalHandler add a RequestHandler to the end of postHandler slice.
+// AddFinalHandler add a RequestHandler to the end of FinalHandler slice.
 func (h *Handlers) AddFinalHandler(r fasthttp.RequestHandler) {
-	if h.finalHandler == nil {
-		h.finalHandler = []fasthttp.RequestHandler{}
+	if h.FinalHandler == nil {
+		h.FinalHandler = []fasthttp.RequestHandler{}
 	}
-	h.finalHandler = append(h.finalHandler, r)
+	h.FinalHandler = append(h.FinalHandler, r)
 }
 
 // CopyHandlers copy Handlers, such that you can add more specific handlers.
 func (h *Handlers) CopyHandlers() *Handlers {
 	c := &Handlers{}
-	if h.preHandler != nil {
-		c.preHandler = make([]RequestHandler, len(h.preHandler))
-		copy(c.preHandler, h.preHandler)
+	if h.PreHandler != nil {
+		c.PreHandler = make([]RequestHandler, len(h.PreHandler))
+		copy(c.PreHandler, h.PreHandler)
 	}
-	if h.postHandler != nil {
-		c.postHandler = make([]fasthttp.RequestHandler, len(h.postHandler))
-		copy(c.postHandler, h.postHandler)
+	if h.PostHandler != nil {
+		c.PostHandler = make([]fasthttp.RequestHandler, len(h.PostHandler))
+		copy(c.PostHandler, h.PostHandler)
 	}
-	if h.finalHandler != nil {
-		c.finalHandler = make([]fasthttp.RequestHandler, len(h.finalHandler))
-		copy(c.finalHandler, h.finalHandler)
+	if h.FinalHandler != nil {
+		c.FinalHandler = make([]fasthttp.RequestHandler, len(h.FinalHandler))
+		copy(c.FinalHandler, h.FinalHandler)
 	}
 	return c
 }
 
-// SetHandler return a copy of Handlers with its handler are set.
+// SetHandler return a copy of Handlers with its Handler are set.
 func (h *Handlers) SetHandler(r fasthttp.RequestHandler) *Handlers {
 	c := h.CopyHandlers()
-	c.handler = r
+	c.Handler = r
 	return c
 }
