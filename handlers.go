@@ -4,32 +4,32 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// PreFlag indicates whether Handlers.Handler and Handlers.PostHandler are to be skipped.
-type PreFlag int
+// PassFlag indicates whether Handlers.Handler and Handlers.PostHandler are to be skipped.
+type PassFlag int
 
-// Various flag for Handlers.PreHandler
+// Flags for Handlers.Checkpoint
 const (
-	Continue PreFlag = iota
+	Continue PassFlag = iota
 	Stop
 )
 
-// RequestHandler is fasthttp.RequestHandler with error return.
-type RequestHandler func(ctx *fasthttp.RequestCtx) PreFlag
+// CheckHandler is like fasthttp.RequestHandler but returning a flag.
+type CheckHandler func(ctx *fasthttp.RequestCtx) PassFlag
 
 // Handlers is a collection of request handlers.
 type Handlers struct {
-	PreHandler   []RequestHandler
+	Checkpoint   []CheckHandler
 	Handler      fasthttp.RequestHandler
 	PostHandler  []fasthttp.RequestHandler
 	FinalHandler []fasthttp.RequestHandler
 }
 
-// AddPreHandler add a RequestHandler to the end of PreHandler slice.
-func (h *Handlers) AddPreHandler(r RequestHandler) {
-	if h.PreHandler == nil {
-		h.PreHandler = []RequestHandler{}
+// AddCheckpoint add a CheckHandler to the end of Checkpoint slice.
+func (h *Handlers) AddCheckpoint(r CheckHandler) {
+	if h.Checkpoint == nil {
+		h.Checkpoint = []CheckHandler{}
 	}
-	h.PreHandler = append(h.PreHandler, r)
+	h.Checkpoint = append(h.Checkpoint, r)
 }
 
 // AddPostHandler add a RequestHandler to the end of PostHandler slice.
@@ -51,9 +51,9 @@ func (h *Handlers) AddFinalHandler(r fasthttp.RequestHandler) {
 // CopyHandlers copy Handlers, such that you can add more specific handlers.
 func (h *Handlers) CopyHandlers() *Handlers {
 	c := &Handlers{}
-	if h.PreHandler != nil {
-		c.PreHandler = make([]RequestHandler, len(h.PreHandler))
-		copy(c.PreHandler, h.PreHandler)
+	if h.Checkpoint != nil {
+		c.Checkpoint = make([]CheckHandler, len(h.Checkpoint))
+		copy(c.Checkpoint, h.Checkpoint)
 	}
 	if h.PostHandler != nil {
 		c.PostHandler = make([]fasthttp.RequestHandler, len(h.PostHandler))

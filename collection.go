@@ -20,8 +20,8 @@ func NewCollection() *Collection {
 	}
 }
 
-// NewCopy return a new Collection with Router point to the same Router but handlers are copied.
-func (c *Collection) NewCopy() *Collection {
+// Copy return a new Collection with Router point to the same Router but handlers are copied.
+func (c *Collection) Copy() *Collection {
 	n := &Collection{}
 	n.Router = c.Router
 	n.Handlers = c.Handlers.CopyHandlers()

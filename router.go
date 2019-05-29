@@ -277,8 +277,8 @@ func (r *Router) Handler(ctx *fasthttp.RequestCtx) {
 
 	if root := r.trees[method]; root != nil {
 		if h, tsr := root.getValue(path, ctx); h != nil {
-			var flag PreFlag
-			for _, f := range h.PreHandler {
+			var flag PassFlag
+			for _, f := range h.Checkpoint {
 				if flag = f(ctx); flag != Continue {
 					break
 				}
