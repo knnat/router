@@ -20,12 +20,28 @@ func NewCollection() *Collection {
 	}
 }
 
-// Copy return a new Collection with Router point to the same Router but handlers are copied.
+// Copy return a new Collection with Router point to the same Router but Handlers are copied.
 func (c *Collection) Copy() *Collection {
 	n := &Collection{}
 	n.Router = c.Router
-	n.Handlers = c.Handlers.CopyHandlers()
+	n.Handlers = &Handlers{}
+	n.Handlers.Wrapper = c.Handlers.Wrapper.Copy()
 	return n
+}
+
+// AddCheckpoint is a shortcut for Collection.Handlers.Wrapper.AddCheckpoint().
+func (c *Collection) AddCheckpoint(r CheckHandler) {
+	c.Handlers.Wrapper.AddCheckpoint(r)
+}
+
+// AddPostHandler is a shortcut for Collection.Handlers.Wrapper.AddPostHandler().
+func (c *Collection) AddPostHandler(r fasthttp.RequestHandler) {
+	c.Handlers.Wrapper.AddPostHandler(r)
+}
+
+// AddFinalHandler is a shortcut for Collection.Handlers.Wrapper.AddFinalHandler().
+func (c *Collection) AddFinalHandler(r fasthttp.RequestHandler) {
+	c.Handlers.Wrapper.AddFinalHandler(r)
 }
 
 // GET is a shortcut for Collection.Handle("GET", path, handle).

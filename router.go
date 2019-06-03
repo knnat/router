@@ -278,19 +278,19 @@ func (r *Router) Handler(ctx *fasthttp.RequestCtx) {
 	if root := r.trees[method]; root != nil {
 		if h, tsr := root.getValue(path, ctx); h != nil {
 			var flag PassFlag
-			for _, f := range h.Checkpoint {
+			for _, f := range h.Wrapper.Checkpoint {
 				if flag = f(ctx); flag != Continue {
 					break
 				}
 			}
 			if flag == Continue {
 				h.Handler(ctx)
-				for i := range h.PostHandler {
-					h.PostHandler[len(h.PostHandler)-i-1](ctx)
+				for i := range h.Wrapper.PostHandler {
+					h.Wrapper.PostHandler[len(h.Wrapper.PostHandler)-i-1](ctx)
 				}
 			}
-			for i := range h.FinalHandler {
-				h.FinalHandler[len(h.FinalHandler)-i-1](ctx)
+			for i := range h.Wrapper.FinalHandler {
+				h.Wrapper.FinalHandler[len(h.Wrapper.FinalHandler)-i-1](ctx)
 			}
 			return
 		} else if method != "CONNECT" && path != "/" {
